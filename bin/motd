@@ -1,0 +1,77 @@
+#!/bin/bash -
+# /usr/local/bin/motd
+# Note: Delete the contents of /etc/legal to prevent pam from displaying the legal notice 
+
+# Declare variables
+declare -r URL="http://rss.accuweather.com/rss/liveweather_rss.asp?metric=0&locCode=your_zip_code"
+declare -r AWK=/usr/bin/awk
+declare -r CAT=/bin/cat
+declare -r CURL=/usr/bin/curl
+declare -r CUT=/usr/bin/cut
+declare -r GREP=/bin/grep
+declare -r HDDTEMP=/usr/sbin/hddtemp
+declare -r IP=/sbin/ip
+declare -r LSB_RELEASE=/usr/bin/lsb_release
+declare -r PRINTF=/usr/bin/printf
+declare -r PS=/bin/ps
+declare -r SED=/bin/sed
+declare -r SENSORS=/usr/bin/sensors
+declare -r TR=/usr/bin/tr
+declare -r UNAME=/bin/uname
+declare -r WC=/usr/bin/wc
+
+# Get weather
+wx=$($CURL -s $URL | $SED -ne '/title>Currently/p' | $SED 's/^.*tly: //;s/<\/.*//')
+
+# Get distro
+distro=$($LSB_RELEASE -s -d)
+
+# Get kernel
+kernel="$($UNAME -r) $($UNAME -m)"
+
+# Get uptime
+upsecs=$($CUT -d. -f1 /proc/uptime)
+secs=$(( upsecs % 60 ))
+mins=$(( upsecs / 60 % 60 ))
+hours=$(( upsecs / 3600 % 24 ))
+days=$(( upsecs / 86400 ))
+uptime=$($PRINTF "%d days, %02dh %02dm %02ds" "$days" "$hours" "$mins" "$secs")
+
+# Get load average
+read one five fifteen rest < /proc/loadavg
+
+# Get free/total memory
+fmem="$($CAT /proc/meminfo | $GREP MemFree | $AWK '{print $2}')kB (Free)"
+tmem="$($CAT /proc/meminfo | $GREP MemTotal | $AWK '{print $2}')kB (Total)"
+memory="$fmem / $tmem"
+
+# Get process count 
+proccount=$($PS ax | $WC -l | $TR -d " ")
+
+# Get hdd temp
+hddtempc=$($HDDTEMP /dev/sda | $AWK -d: '{print $3}'|tr -d 'Â°C')
+hddtempf=$((hddtempc * 9 / 5 + 32))
+
+# Get CPU temp
+cpu=$($SENSORS -f|$GREP temp1|$SED -ne '/temp1/,+1p' | $SED '$!d'|$AWK '{print $2 " " $3 $4 $5}')
+
+# Get LAN IP address
+lip=$($IP -4 -o a|$GREP wlan|$AWK '{print $4}')
+lip=${lip%/*}
+
+# Get WAN IP address
+wip=$($CURL -s http://192.168.1.1|$GREP -A1 'WAN IP'|$SED -ne 2p|$SED 's/\(^.*\)&.*$/\1/')
+
+$CAT <<EOF>/etc/motd.tail
+Distro.............: $distro
+Kernel.............: $kernel
+Uptime.............: $uptime
+Memory.............: $memory
+Load Averages......: $one, $five, $fifteen
+Process Count......: $proccount
+HDD Temp...........: $hddtempfÂ°F
+CPU Temp...........: $cpu
+LAN IP Address.....: $lip
+WAN IP Address.....: $wip
+Weather............: $wx
+EOF

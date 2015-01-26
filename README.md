@@ -1,2 +1,2 @@
-# local
-local configs
+# local configs
+cobjet local configs
