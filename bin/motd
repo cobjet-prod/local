@@ -3,7 +3,8 @@
 # Note: Delete the contents of /etc/legal to prevent pam from displaying the legal notice 
 
 # Declare variables
-declare -r URL="http://rss.accuweather.com/rss/liveweather_rss.asp?metric=0&locCode=your_zip_code"
+declare -r ZIP="94158"
+declare -r URL="http://rss.accuweather.com/rss/liveweather_rss.asp?metric=0&locCode=$ZIP"
 declare -r AWK=/usr/bin/awk
 declare -r CAT=/bin/cat
 declare -r CURL=/usr/bin/curl
@@ -49,29 +50,28 @@ memory="$fmem / $tmem"
 proccount=$($PS ax | $WC -l | $TR -d " ")
 
 # Get hdd temp
-hddtempc=$($HDDTEMP /dev/sda | $AWK -d: '{print $3}'|tr -d 'Â°C')
-hddtempf=$((hddtempc * 9 / 5 + 32))
+#hddtempc=$($HDDTEMP /dev/sda | $AWK -d: '{print $3}'|tr -d 'Â°C')
+#hddtempf=$((hddtempc * 9 / 5 + 32))
 
 # Get CPU temp
-cpu=$($SENSORS -f|$GREP temp1|$SED -ne '/temp1/,+1p' | $SED '$!d'|$AWK '{print $2 " " $3 $4 $5}')
+#cpu=$($SENSORS -f|$GREP temp1|$SED -ne '/temp1/,+1p' | $SED '$!d'|$AWK '{print $2 " " $3 $4 $5}')
 
 # Get LAN IP address
-lip=$($IP -4 -o a|$GREP wlan|$AWK '{print $4}')
+lip=$($IP -4 -o a|$GREP eth0|$AWK '{print $4}')
 lip=${lip%/*}
 
 # Get WAN IP address
-wip=$($CURL -s http://192.168.1.1|$GREP -A1 'WAN IP'|$SED -ne 2p|$SED 's/\(^.*\)&.*$/\1/')
+wip=$($IP -4 -o a|$GREP docker0|$AWK '{print $4}')
+wip=${wip%/*}
 
 $CAT <<EOF>/etc/motd.tail
+Local Weather......: $wx at $ZIP
 Distro.............: $distro
 Kernel.............: $kernel
 Uptime.............: $uptime
 Memory.............: $memory
 Load Averages......: $one, $five, $fifteen
 Process Count......: $proccount
-HDD Temp...........: $hddtempfÂ°F
-CPU Temp...........: $cpu
 LAN IP Address.....: $lip
-WAN IP Address.....: $wip
-Weather............: $wx
+Docker IP Address..: $wip
 EOF
