@@ -1,0 +1,1 @@
+docker run --privileged -d --name worker -p 8888:8888 -p 4430:4430 cobjet/worker
