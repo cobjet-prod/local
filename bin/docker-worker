@@ -1,1 +1,4 @@
-docker run --privileged -d --name worker -p 8888:8888 -p 4430:4430 cobjet/worker
+docker run --privileged -d --name cobjetworker -p 8888:8888 -p 4430:4430 cobjet/worker
+
+#docker run --privileged -d --name cobjetworker -v `pwd`/workerserver:/usr/local/workerserver -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 5555:5555 -p 992:992 cobjet/worker
+#docker run --privileged -t -i --rm --link cobjetworker:cobjetworker cobjet/worker bash
